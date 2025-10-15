@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get ¥200,000,000 Button</title>
+  <!--
+    ✅ GitHub Pages 向けに最小依存で作り直し（index.html として置くだけでOK）
+    デプロイ例：
+      1) このファイル名を index.html にして、リポジトリ直下または /docs に配置
+      2) Settings → Pages → Branch を main/(root) か main/docs に設定
+      3) URL: https://<username>.github.io/<repo>/ （/docs の場合も同じ）
+  -->
+  <style>
+    :root{
+      --bg:#070816; --bg2:#0c1130; --gold1:#fff5a7; --gold2:#ffd54b; --gold3:#ffb300;
+      --c1:#ff2b6a; --c2:#00ffd0; --c3:#7cff00; --c4:#00a2ff; --c5:#ffdd00; --white:#fff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;color:#fff;background:radial-gradient(120vmax 120vmax at 50% 50%, var(--bg2), var(--bg));overflow:hidden}
+    .wrap{position:relative;inset:0;height:100%;display:grid;place-items:center}
+
+    /* 背景オーロラ */
+    .aura{position:absolute;inset:-25vmax;background:conic-gradient(from 0deg, rgba(255,221,0,.16), rgba(255,43,106,.18), rgba(124,255,0,.16), rgba(0,162,255,.18), rgba(255,221,0,.16));filter:blur(48px);opacity:.6;animation:spin 18s linear infinite}
+    @keyframes spin{to{transform:rotate(1turn)}}
+
+    h1{position:absolute;top:5vh;left:0;right:0;margin:0 auto;text-align:center;font-weight:900;letter-spacing:.04em;font-size:clamp(20px,3.2vw,42px);background:linear-gradient(90deg,#fff,var(--gold1),#fff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 10px rgba(255,255,255,.15))}
+
+    .panel{display:grid;place-items:center;gap:16px;z-index:2;text-align:center}
+    .btn{cursor:pointer;border:none;border-radius:18px;padding:18px 28px;font-weight:900;letter-spacing:.06em;font-size:clamp(20px,3.2vw,34px);color:#1b1400;background:linear-gradient(180deg,var(--gold1),var(--gold2) 45%,var(--gold3));box-shadow:0 18px 50px rgba(255,221,0,.25), inset 0 -8px 18px rgba(0,0,0,.4), inset 0 8px 14px rgba(255,255,255,.25);transition:transform .08s ease,filter .18s ease}
+    .btn:hover{filter:brightness(1.06)}
+    .btn:active{transform:translateY(2px)}
+    .note{opacity:.8}
+
+    /* ジャックポット表示 */
+    .jackpot{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .5s ease}
+    .jackpot.active{opacity:1}
+    .value{font-weight:900;font-size:clamp(36px,8vw,120px);letter-spacing:.06em;line-height:1.05;text-align:center;background:linear-gradient(180deg,#fff,var(--gold1) 40%,var(--gold2) 60%,var(--gold3) 85%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 2px 0 rgba(0,0,0,.25),0 18px 50px rgba(255,211,0,.22);filter:drop-shadow(0 0 22px rgba(255,221,0,.22))}
+    .sub{font-size:clamp(14px,2vw,20px);opacity:.85;margin-top:.6rem;text-align:center}
+
+    /* 紙幣&コンフェッティ */
+    .field{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+    .bill{position:absolute;top:-12vh;font-size:clamp(18px,3vw,42px);opacity:.98;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35));animation:fall linear forwards}
+    @keyframes fall{to{transform:translateY(120vh) rotate(720deg)}}
+    .conf{position:absolute;top:-10vh;width:12px;height:22px;border-radius:2px;opacity:.95;animation:confFall linear forwards}
+    @keyframes confFall{to{transform:translateY(120vh) rotate(1.5turn)}}
+
+    /* 花火 */
+    canvas#fw{position:absolute;inset:0;z-index:0;pointer-events:none}
+
+    /* モーション減 */
+    @media (prefers-reduced-motion: reduce){.aura,.bill,.conf{animation-duration:1ms;animation-iteration-count:1}}
+
+    .credit{position:absolute;bottom:10px;right:14px;opacity:.55;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="aura" aria-hidden="true"></div>
+    <h1>200,000,000円 もらえるボタン（押すとド派手✨）</h1>
+
+    <div class="panel">
+      <button id="btn" class="btn" aria-label="200,000,000円もらえるボタン">💥 200,000,000円 もらえるボタン 💥</button>
+      <div class="note">※ クリックすると盛大にお祝いします（音あり。ミュートは端末側で）</div>
+    </div>
+
+    <div id="jackpot" class="jackpot" aria-live="polite">
+      <div>
+        <div id="value" class="value">¥0</div>
+        <div class="sub">Congratulations! 🎉</div>
+      </div>
+    </div>
+
+    <div id="field" class="field" aria-hidden="true"></div>
+    <canvas id="fw"></canvas>
+
+    <div class="credit">© flashy demo</div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('btn');
+    const jackpot = document.getElementById('jackpot');
+    const valueEl = document.getElementById('value');
+    const field = document.getElementById('field');
+    const fw = document.getElementById('fw');
+    const ctx = fw.getContext('2d');
+
+    function resize(){
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+      fw.width = innerWidth * dpr; fw.height = innerHeight * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    addEventListener('resize', resize); resize();
+
+    // カウンター（2,200msで2億まで）
+    function animateCounter(target=200000000, duration=2200){
+      const start = performance.now();
+      const fmt = n => '¥' + n.toLocaleString('ja-JP');
+      function tick(now){
+        const p = Math.min(1, (now-start)/duration);
+        const ease = 1 - Math.pow(1-p, 3);
+        valueEl.textContent = fmt(Math.floor(target*ease));
+        if(p<1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // 紙幣＆紙吹雪
+    function celebrate(){
+      const colors = ['#ffdd00','#ff2b6a','#00ffd0','#7cff00','#00a2ff','#ffffff'];
+      const bills = 70, confetti = 220;
+      for(let i=0;i<bills;i++){
+        const e = document.createElement('div');
+        e.className='bill'; e.textContent = Math.random()>.35 ? '💴' : '¥';
+        e.style.left = (Math.random()*100)+'vw';
+        const t = 5 + Math.random()*6; e.style.animationDuration = t+'s';
+        e.style.transform = `translateY(-12vh) rotate(${(Math.random()*360)|0}deg)`;
+        field.appendChild(e); setTimeout(()=>e.remove(), t*1000+200);
+      }
+      for(let i=0;i<confetti;i++){
+        const c = document.createElement('div'); c.className='conf';
+        c.style.left=(Math.random()*100)+'vw';
+        const t=3+Math.random()*4; c.style.animationDuration=t+'s';
+        c.style.background=colors[(Math.random()*colors.length)|0];
+        c.style.width=(6+Math.random()*10)+'px'; c.style.height=(8+Math.random()*18)+'px';
+        c.style.borderRadius=(Math.random()>.7? '50%':'2px');
+        c.style.transform=`translateY(-10vh) rotate(${(Math.random()*360)|0}deg)`;
+        field.appendChild(c); setTimeout(()=>c.remove(), t*1000+200);
+      }
+    }
+
+    // 花火
+    const shots=[];
+    function spawnFirework(){
+      const cx=Math.random()*innerWidth, cy=innerHeight*(.2+Math.random()*.5);
+      const hue=Math.random()*360, parts=80+((Math.random()*50)|0);
+      for(let i=0;i<parts;i++){
+        const a=(Math.PI*2)*(i/parts), s=2+Math.random()*4;
+        shots.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:60+((Math.random()*30)|0),age:0,h:hue});
+      }
+    }
+    function loop(){
+      ctx.clearRect(0,0,innerWidth,innerHeight);
+      for(let i=shots.length-1;i>=0;i--){
+        const p=shots[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.05; p.age++;
+        const alpha=Math.max(0,1-p.age/p.life);
+        ctx.globalCompositeOperation='screen';
+        ctx.fillStyle=`hsla(${p.h},100%,60%,${alpha})`;
+        ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fill();
+        if(p.age>=p.life) shots.splice(i,1);
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+    function fireworkShow(ms=3500){
+      const end=performance.now()+ms; (function burst(){
+        spawnFirework(); if(performance.now()<end){ setTimeout(burst,120+Math.random()*180); }
+      })();
+    }
+
+    // ちいさなファンファーレ（WebAudio, 外部ファイル不要）
+    let audioCtx; function fanfare(){
+      try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+        const now=audioCtx.currentTime; const seq=[
+          {t:0.00,f:880,d:.18},{t:0.05,f:1174,d:.18},{t:0.10,f:1760,d:.32},
+          {t:0.50,f:1318,d:.20},{t:0.58,f:1760,d:.30},{t:0.90,f:2349,d:.35}
+        ];
+        seq.forEach(n=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+          o.type='triangle'; o.frequency.value=n.f;
+          g.gain.setValueAtTime(0.0001, now+n.t);
+          g.gain.exponentialRampToValueAtTime(0.4, now+n.t+0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, now+n.t+n.d);
+          o.connect(g).connect(audioCtx.destination);
+          o.start(now+n.t); o.stop(now+n.t+n.d+0.02);
+        });
+      }catch(e){}
+    }
+
+    let busy=false;
+    function go(){
+      if(busy) return; busy=true;
+      jackpot.classList.add('active');
+      animateCounter();
+      celebrate();
+      fireworkShow();
+      fanfare();
+      setTimeout(()=>busy=false, 2500);
+    }
+
+    btn.addEventListener('click', go);
+    btn.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+  </script>
+</body>
+</html>
